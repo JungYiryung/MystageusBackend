@@ -35,8 +35,7 @@ const uploadFile = multer({
             }
         },
         acl : 'public-read-write'
-    }),
-    filter
+    })
 })
 
 module.exports = uploadFile

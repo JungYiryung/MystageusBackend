@@ -80,7 +80,7 @@ app.use((err, req, res, next) => {
     })
 });
 
-app.listen(8000, ()=> {
+app.listen(5000, ()=> {
     console.log("8000번 포트에서 웹 서버 실행")
 })//웹서버 열어주는 코드 
 
