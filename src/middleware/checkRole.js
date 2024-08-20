@@ -12,6 +12,6 @@ const checkRole = async (req, res, next)=>{
     if( roleIdx === user && categoryIdx === noticeBoard) {   
         return next(forbiddenError("일반유저는 공지사항 게시판글을 작성할수 없습니다."))
     }
-
+    next()
 }
 module.exports = checkRole
