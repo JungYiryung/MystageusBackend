@@ -31,7 +31,6 @@ const uploadFile = multer({
                 if (!extensions.includes(file.mimetype)) {
                     return cb(new Error("이미지파일 아님"))
                 }
-                console.log(s3)
                 cb(null, `${Date.now().toString()}_${file.originalname}`)
             } catch {
                 return cb(new Error("이미지 업로드 에러"))

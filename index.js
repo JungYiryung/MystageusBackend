@@ -1,4 +1,4 @@
-const express = require("express") 
+const express = require("express")
 const session = require("express-session")
 const dotenv = require("dotenv").config() // 미들웨어x 패키지임. 
 const app = express()
@@ -8,22 +8,22 @@ const logging = require("./src/middleware/logging")
 // 웹서버 꺼지면 
 // 커넥션이 한개라서 동시에 하나만 처리해
 // 그래서 동시에 여러개 요청을 처리할 수 있게 만들어준게 connectionpool을 이용해 여러개 요청 처리할 수 잇다. 
-app.use(express.json()) 
+app.use(express.json())
 app.use(session({ // req에 session 추가
-    resave : false,
-    saveUninitialized : false,
-    secret : process.env.COOKIE_SECRET, // 이거 
-    }
+    resave: false,
+    saveUninitialized: false,
+    secret: process.env.COOKIE_SECRET, // 이거 
+}
 ))
 
 //로깅 미들웨어 
-app.use((req,res, next)=>{
+app.use((req, res, next) => {
     const originalSend = res.send; // res.send메서드를 originalsend로 보내는것. 
     // express intercepter 구글링 스킬이 되어있다는게 중요해 
     // 남의 코드를 많이 읽자.  
-    res.send = (body) =>{ 
+    res.send = (body) => {
         res.body = body
-        return originalSend.call(res, body) 
+        return originalSend.call(res, body)
     }
     // if(req.path === "/users/logout" || 
     //     (req.path === "/users" && req.method === "DELETE")) {
@@ -36,8 +36,8 @@ app.use((req,res, next)=>{
     //         })
     //     })
     // }else{
-    res.on("finish",()=>{ // 라우터와 응답 사이에 해주는게 res.on 
-        logging(req,res,next)
+    res.on("finish", () => { // 라우터와 응답 사이에 해주는게 res.on 
+        logging(req, res, next)
     })
     // }
     next()
@@ -47,17 +47,27 @@ const authRouter = require("./src/router/auth")
 app.use("/auth", authRouter)
 
 const usersRouter = require("./src/router/users")
-app.use("/users",usersRouter)
+app.use("/users", usersRouter)
 
 const adminRouter = require("./src/router/admin")
-app.use("/admin",adminRouter)
+app.use("/admin", adminRouter)
 
 const articlesRouter = require("./src/router/articles")
 app.use("/articles", articlesRouter)
 
 const commentsRouter = require("./src/router/comments")
-app.use("/comments",commentsRouter)
+app.use("/comments", commentsRouter)
 
+const oAuthRouter = require("./src/router/oAuth")
+app.use("/oauth", oAuthRouter)
+
+app.get("/index-page", (req, res) => {
+    res.sendFile(`${__dirname}/src/page/index.html`)
+})
+
+app.get("/main-page", (req, res) => {
+    res.sendFile(`${__dirname}/src/page/main.html`)
+})
 // 깃허브*****
 // app.get("/articles/:idx/detail",(req,res)=>{
 //     const articleIdx = req.params.idx
@@ -68,7 +78,7 @@ app.use("/comments",commentsRouter)
 
 
 //notFoundError middleware
-app.use((req, res, next)=>{
+app.use((req, res, next) => {
     const error = new Error("요청하는 라우터가 없습니다. ")
     error.statusCode = 404
     next(error)
@@ -80,8 +90,8 @@ app.use((err, req, res, next) => {
     })
 });
 
-app.listen(5000, ()=> {
-    console.log("8000번 포트에서 웹 서버 실행")
+app.listen(5000, () => {
+    console.log("5000번 포트에서 웹 서버 실행")
 })//웹서버 열어주는 코드 
 
 

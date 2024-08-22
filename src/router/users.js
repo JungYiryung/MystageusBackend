@@ -1,6 +1,6 @@
 const router = require("express").Router()
-const {idRegx, passwordRegx, nicknameRegx, nameRegx, phoneRegx, titleRegx, dateRegx,idxRegx } = require("../const/regx.js")
-const { InvalidRegxError, unAuthrizeError, forbiddenError, NotFoundError, duplicateError} = require("../error/customError.js")
+const { idRegx, passwordRegx, nicknameRegx, nameRegx, phoneRegx, titleRegx, dateRegx, idxRegx } = require("../const/regx.js")
+const { InvalidRegxError, unAuthrizeError, forbiddenError, NotFoundError, duplicateError } = require("../error/customError.js")
 const psqlPool = require("../const/postgresql.js")
 const checkRegx = require("../middleware/checkRegx.js")
 const checkDuplicate = require("../middleware/checkDuplicate.js")
@@ -32,41 +32,41 @@ const jwt = require("jsonwebtoken")
 //     next()
 // })
 router.post("/login", // 2차원배열로 받던가, 직관적으로 두개의 인자로 전달해주던가.
-    checkRegx([ ["id",idRegx,"body"] , ["password",passwordRegx,"body"] ]),
+    checkRegx([["id", idRegx, "body"], ["password", passwordRegx, "body"]]),
     wrapper(async (req, res, next) => {
         const userId = req.body.id
         const userPassword = req.body.password
-        
-        const loginResult = 
+
+        const loginResult =
             await psqlPool.query(
                 "SELECT * FROM project.users WHERE id = $1 AND password = $2",
                 [userId, userPassword]
             )
         const loginRows = loginResult.rows
-        if(loginRows.length < 1) {
-            throw NotFoundError() 
+        if (loginRows.length < 1) {
+            throw NotFoundError()
         }
-        
+
         const accessToken = jwt.sign({
-            "userIdx" : loginResult.rows[0].user_idx,
-            "roleIdx" : loginResult.rows[0].role_idx,
+            "userIdx": loginResult.rows[0].user_idx,
+            "roleIdx": loginResult.rows[0].role_idx,
             "nickname": loginResult.rows[0].nickname,
-            "phone" : loginResult.rows[0].phone
-        },process.env.ACCESS_TOKEN_SIGNATURE, {
-            expiresIn : process.env.ACCESS_TOKEN_EXPIRY
+            "phone": loginResult.rows[0].phone
+        }, process.env.ACCESS_TOKEN_SIGNATURE, {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         })
         const refreshToken = jwt.sign({
-            "userIdx" : loginResult.rows[0].user_idx,
-            "roleIdx" : loginResult.rows[0].role_idx,
+            "userIdx": loginResult.rows[0].user_idx,
+            "roleIdx": loginResult.rows[0].role_idx,
             "nickname": loginResult.rows[0].nickname,
-            "phone" : loginResult.rows[0].phone
-        },process.env.REFRESH_TOKEN_SIGNATURE,{
-            expiresIn : process.env.REFRESH_TOKEN_EXPIRY
+            "phone": loginResult.rows[0].phone
+        }, process.env.REFRESH_TOKEN_SIGNATURE, {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         })
 
         res.status(200).send({
-            "access token" :  accessToken,
-            "refresh token" : refreshToken
+            "access token": accessToken,
+            "refresh token": refreshToken
         })
     })
 )
@@ -81,12 +81,12 @@ router.post("/login", // 2차원배열로 받던가, 직관적으로 두개의 �
 // })
 
 //회원가입기능
-router.post("/", checkRegx( [ ["id",idRegx,"body"], ["password",passwordRegx,"body"],
-    ["nickname",nicknameRegx,"body"], ["name",nameRegx,"body"] , ["phone",phoneRegx,"body"] ]),
+router.post("/", checkRegx([["id", idRegx, "body"], ["password", passwordRegx, "body"],
+["nickname", nicknameRegx, "body"], ["name", nameRegx, "body"], ["phone", phoneRegx, "body"]]),
     checkDuplicate("id"),
     checkDuplicate("nickname"),
-    checkDuplicate("phone") ,
-    wrapper( async(req, res, next) => {
+    checkDuplicate("phone"),
+    wrapper(async (req, res, next) => {
         const userId = req.body.id
         const userPassword = req.body.password
         const userNickname = req.body.nickname
@@ -96,7 +96,7 @@ router.post("/", checkRegx( [ ["id",idRegx,"body"], ["password",passwordRegx,"bo
 
         await psqlPool.query(
             "INSERT INTO project.users (id, password , nickname , name , phone, role_idx) VALUES($1,$2,$3,$4,$5,$6);",
-            [userId, userPassword, userNickname, userName, userPhone, userRoleIdx] 
+            [userId, userPassword, userNickname, userName, userPhone, userRoleIdx]
         )
         res.status(200).send()
     })
@@ -104,93 +104,92 @@ router.post("/", checkRegx( [ ["id",idRegx,"body"], ["password",passwordRegx,"bo
 
 
 //아이디찾기
-router.get("/id", checkRegx([ ["name",nameRegx,"body"] , ["phone",phoneRegx,"body"] ]), 
-    wrapper ( async (req, res, next) => {
+router.get("/id", checkRegx([["name", nameRegx, "body"], ["phone", phoneRegx, "body"]]),
+    wrapper(async (req, res, next) => {
         const userName = req.body.name
         const userPhone = req.body.phone
 
         const result = await psqlPool.query(
             "SELECT id FROM project.users WHERE name=$1 AND phone = $2",
-            [userName, userPhone] 
+            [userName, userPhone]
         )
 
-        if(result.rows.length === 0) {
+        if (result.rows.length === 0) {
             return next(NotFoundError());
         }
         res.status(200).json({
-            "id" : result.rows[0].id
+            "id": result.rows[0].id
         })
     })
 )
 
 //비밀번호찾기
-router.get("/pw", 
-    checkRegx([["id",idRegx,"body"],["name",nameRegx,"body"], ["phone",phoneRegx,"body"]]),
-    wrapper( async (req, res, next) => {
+router.get("/pw",
+    checkRegx([["id", idRegx, "body"], ["name", nameRegx, "body"], ["phone", phoneRegx, "body"]]),
+    wrapper(async (req, res, next) => {
         const userId = req.body.id
         const userName = req.body.name
         const userPhone = req.body.phone
-        
+
         const result = await psqlPool.query(
             "SELECT password FROM project.users WHERE id=$1 AND name=$2 AND phone = $3",
-            [userId, userName, userPhone] 
+            [userId, userName, userPhone]
         )
-        if(result.rows.length === 0) {
+        if (result.rows.length === 0) {
             return next(NotFoundError());
         }
         res.status(200).json({
-            "password" : result.rows[0].password
+            "password": result.rows[0].password
         })
-        })
+    })
 )
 
 //내정보 보기
-router.get("/my", checkAccessToken , 
-    wrapper( async (req, res, next) => {
-        const tokenUserIdx = req.decoded.userIdx   
+router.get("/my", checkAccessToken,
+    wrapper(async (req, res, next) => {
+        const tokenUserIdx = req.decoded.userIdx
         const result = await psqlPool.query(
             "SELECT * FROM project.users WHERE user_idx=$1",
-            [tokenUserIdx] 
+            [tokenUserIdx]
         )
         res.status(200).json({
-            "id" : result.rows[0].id, 
-            "password" : result.rows[0].password,
-            "nickname" : result.rows[0].nickname,
-            "name" : result.rows[0].name,
-            "phone" : result.rows[0].phone  
+            "id": result.rows[0].id,
+            "password": result.rows[0].password,
+            "nickname": result.rows[0].nickname,
+            "name": result.rows[0].name,
+            "phone": result.rows[0].phone
         })
     }
-))
+    ))
 
 //내정보 수정
-router.put("/my", checkAccessToken, 
-    checkRegx([ ["password",passwordRegx,"body"],["nickname",nicknameRegx,"body"],
-    ["name",nameRegx,"body"], ["phone",phoneRegx,"body"] ]),
+router.put("/my", checkAccessToken,
+    checkRegx([["password", passwordRegx, "body"], ["nickname", nicknameRegx, "body"],
+    ["name", nameRegx, "body"], ["phone", phoneRegx, "body"]]),
     checkDuplicate("nickname"),
     checkDuplicate("phone"),
-    wrapper( async (req, res, next) => {
-    const tokenUserIdx = req.decoded.userIdx  
+    wrapper(async (req, res, next) => {
+        const tokenUserIdx = req.decoded.userIdx
 
-    const userPassword = req.body.password
-    const userNickname = req.body.nickname
-    const userName = req.body.name
-    const userPhone = req.body.phone
+        const userPassword = req.body.password
+        const userNickname = req.body.nickname
+        const userName = req.body.name
+        const userPhone = req.body.phone
 
-    const result = await psqlPool.query(
-        "UPDATE project.users SET password=$1, nickname=$2, name=$3, phone=$4 WHERE user_idx=$5;",
-        [userPassword, userNickname, userName, userPhone, tokenUserIdx] 
-    )
-    res.status(200).send()
+        const result = await psqlPool.query(
+            "UPDATE project.users SET password=$1, nickname=$2, name=$3, phone=$4 WHERE user_idx=$5;",
+            [userPassword, userNickname, userName, userPhone, tokenUserIdx]
+        )
+        res.status(200).send()
     })
 )
-//회원탈퇴
-// 세션삭제도 들어가야함. 그래야 개발실수 덜수있음. 
-router.delete("/", checkAccessToken, 
-    wrapper ( async (req, res, next) => {
-        const tokenUserIdx = req.decoded.userIdx  
+//회원탈퇴 
+router.delete("/", checkAccessToken,
+    wrapper(async (req, res, next) => {
+        const tokenUserIdx = req.decoded.userIdx
         await psqlPool.query(
             "DELETE FROM project.users WHERE user_idx=$1;",
-            [tokenUserIdx] 
+            [tokenUserIdx]
         )
         res.status(200).send()
     })

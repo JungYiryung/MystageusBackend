@@ -15,6 +15,8 @@ const checkArticleWriter = async (req, res, next) => {
     // 분리가 되어야함. 
     // 이 3개를 각각 미들웨어로 나눠야함. 
 
+    // sql코드를 재활용하기 위해 그런 계층이 있는거다 그래서 나중에 3계층 구조가 나오는것. 
+
     //게시글작성글쓴이와 게시글 수정하려는 글쓴이가 다를때 
     if (articleIdx) {
         writerUser = await psqlPool.query("SELECT user_idx FROM project.articles WHERE article_idx = $1",

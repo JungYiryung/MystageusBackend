@@ -24,19 +24,19 @@ router.post("/", checkAccessToken, uploadFile.array('image', 10), checkRegx([["t
         let reqFilesLocation = req.files.map((elem) => {
             return elem.location
         })
-
-        if (req.files) {
+        if (req.files.length !== 0) {
             await psqlPool.query(
-                `INSERT INTO project.articles ( title, contents, user_idx, category_idx, imageLocation) VALUES ($1,$2,$3,$4,$5);`,
+                `INSERT INTO project.articles ( title, contents, user_idx, category_idx, imagelocation) VALUES ($1,$2,$3,$4,$5);`,
                 [title, contents, tokenUserIdx, categoryIdx, `{${reqFilesLocation}}`]
             )
             return res.status(200).send()
+        } else {
+            await psqlPool.query(
+                "INSERT INTO project.articles ( title, contents, user_idx, category_idx,imagelocation) VALUES ($1,$2,$3,$4,$5);",
+                [title, contents, tokenUserIdx, categoryIdx, '{}']
+            )
+            res.status(200).send()
         }
-        await psqlPool.query(
-            "INSERT INTO project.articles ( title, contents, user_idx, category_idx) VALUES ($1,$2,$3,$4);",
-            [title, contents, tokenUserIdx, categoryIdx]
-        )
-        res.status(200).send()
     })
 )
 
@@ -67,8 +67,7 @@ router.get("/:articleIdx/detail", checkAccessToken, checkRegx([["articleIdx", id
     }))
 
 //게시글 수정
-//이미지 여러개일때 수정하는거
-router.put("/:articleIdx/detail", checkAccessToken, checkRegx([["title", titleRegx, "body"],
+router.put("/:articleIdx/detail", checkAccessToken, uploadFile.array('image', 10), checkRegx([["title", titleRegx, "body"],
 ["contents", contentRegx, "body"], ["articleIdx", idxRegx, "params"]]),
     checkArticleWriter,
     checkArticleIdx,
@@ -78,8 +77,56 @@ router.put("/:articleIdx/detail", checkAccessToken, checkRegx([["title", titleRe
         const title = req.body.title
         const contents = req.body.contents
 
-        await psqlPool.query("UPDATE project.articles SET title = $1, contents = $2 WHERE article_idx = $3",
-            [title, contents, articleIdx])
+        await psqlPool.query("BEGIN")
+        // 기존의 articleIdx에 있던 imagelocation으로 s3에 이미지 삭제
+        const imageLocation = await psqlPool.query("SELECT imagelocation FROM project.articles WHERE article_idx = $1", [articleIdx])
+        const encodedLocation = imageLocation.rows[0].imagelocation
+        let decodedLocation = encodedLocation.map((elem) => {
+            return decodeURIComponent(elem)
+        })
+        const key = decodedLocation.map((elem) => {
+            return elem.split("/").pop()
+        })
+        // s3파일 삭제 
+        const object = key.map((elem) => {
+            return { Key: `${elem}` }
+        })
+        const params = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Delete: {
+                Objects: object
+            }
+        }
+        await s3
+            .deleteObjects(params)
+            .promise()
+            .then((data) => {
+            })
+            .catch(async (err) => {
+                await psqlPool.query("ROLLBACK")
+            })
+        //imagelocation에 기반해 s3이미지 삭제 끝
+
+        // 수정된 내용 업데이트
+        let reqFilesLocation = req.files.map((elem) => {
+            return elem.location
+        })
+        if (req.files.length !== 0) {
+            await psqlPool.query(
+                `UPDATE project.articles SET title = $1, contents = $2, imagelocation = $3 WHERE article_idx = $4;`,
+                [title, contents, reqFilesLocation, articleIdx]
+            )
+            await psqlPool.query("COMMIT")
+            return res.status(200).send()
+        } else {
+            await psqlPool.query(
+                "UPDATE project.articles SET title = $1, contents = $2, imagelocation = $3 WHERE article_idx = $4;",
+                [title, contents, '{}', articleIdx]
+            )
+            await psqlPool.query("COMMIT")
+            res.status(200).send()
+        }
+        //수정된 내용 업데이트 끝
         res.status(200).send()
     })
 )
